@@ -7,6 +7,16 @@ export default class Helper {
     static ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     static digits = '0123456789'
 
+    /** Toujours affiché */
+    static log(msg) {
+        console.log(msg);
+    }
+
+    /** Affiché uniquement si VERBOSE=true */
+    static logV(msg) {
+        if (config.verbose) console.log(msg);
+    }
+
     /**
      * @param {object} option
      * {
@@ -82,7 +92,7 @@ export default class Helper {
                 if (retries >= maxRetries) throw error;
                 await this.sleepHuman(timeout);
                 retries++;
-                console.log('ressaie ', retries);
+                Helper.logV(`   retry ${retries}/${maxRetries}`);
             }
         }
     }
@@ -139,10 +149,12 @@ export default class Helper {
                 try {
                     await axios.get(url, { timeout: timeoutMs });
                     return true;
-                } catch (_) { /* essayer la suivante */ }
+                } catch (_) {
+                    Helper.logV(`   ping échoué: ${url}`);
+                }
             }
             if (tentative < retries) {
-                console.log(`🔴 Hors ligne (essai ${tentative}/${retries}) — attente 3s...`);
+                Helper.logV(`🔴 Hors ligne (essai ${tentative}/${retries}) — attente 3s...`);
                 await Helper.sleep(3);
             }
         }
@@ -161,16 +173,16 @@ export default class Helper {
         while (compteur < wifiDownMaxWaits) {
             const ok = await Helper.isOnline();
             if (ok) {
-                if (compteur > 0) console.log('🟢 Connexion rétablie !');
+                if (compteur > 0) Helper.log('🟢 Connexion rétablie !');
                 return true;
             }
             compteur++;
             const delaiSec = Math.min(30 + compteur * 15, 240);
-            console.log(`⏳ WiFi indisponible (${compteur}/${wifiDownMaxWaits}) — pause ${delaiSec}s...`);
+            Helper.log(`⏳ WiFi indisponible (${compteur}/${wifiDownMaxWaits}) — pause ${delaiSec}s...`);
             await Helper.sleep(delaiSec);
         }
 
-        console.log('❌ Connexion toujours absente après toutes les tentatives.');
+        Helper.log('❌ Connexion toujours absente après toutes les tentatives.');
         return false;
     }
 

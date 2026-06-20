@@ -1,7 +1,7 @@
 {
-  "name": "convertisseuragent",
-  "version": "1.0.0",
-  "description": "agent de conversion de coupon d'une plateforme vers une autre",
+  "name": "hotforce",
+  "version": "0.1.1",
+  "description": "Testeur de vouchers WiFi hotspot par brute-force via Puppeteer",
   "license": "ISC",
   "type": "module",
   "author": "",

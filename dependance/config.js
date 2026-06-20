@@ -18,6 +18,8 @@ export default {
         headless: (e.BROWSER_HEADLESS ?? 'false').toLowerCase() === 'true',
     },
 
+    verbose: (e.VERBOSE ?? 'false').toLowerCase() === 'true',
+
     hotspot: {
         url:         e.HOTSPOT_URL         ?? 'http://hotspot.ci/login',
         successUrls: parseList(e.HOTSPOT_SUCCESS_URLS, [

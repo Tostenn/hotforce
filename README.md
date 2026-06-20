@@ -1,4 +1,4 @@
-# WiFi Zone — Testeur de vouchers hotspot
+# hotforce — Testeur de vouchers hotspot
 
 Automatise les tentatives de connexion sur un portail captif WiFi (type UniFi/hotspot.ci) en générant et testant des codes vouchers par brute-force.
 
@@ -40,6 +40,7 @@ Toute la configuration se fait dans `.env`. Les variables essentielles :
 | `CODE_PREFIXES` | Préfixes des codes (ex: `4j,4j,4j,4j,4d,1s`) |
 | `CODE_MIN_LEN` / `CODE_MAX_LEN` | Longueur totale min/max du code |
 | `BROWSER_HEADLESS` | `true` = Chrome invisible, `false` = visible |
+| `VERBOSE` | `true` = tous les logs, `false` = actions importantes uniquement |
 
 Voir [docs/configuration.md](docs/configuration.md) pour la liste complète.
 

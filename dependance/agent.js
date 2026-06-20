@@ -60,7 +60,7 @@ export default class Agent {
         try {
             if (this.browser) await this.browser.close();
 
-            console.log('Lancement de Chrome...');
+            Helper.logV('Lancement de Chrome...');
             puppeteer.use(StealthPlugin());
 
             this.browser = await puppeteer.launch({
@@ -99,11 +99,11 @@ export default class Agent {
                 'Chrome/91.0.4472.124 Safari/537.36'
             );
 
-            this.page.on('pageerror', err => console.error('📛 Erreur JS page:', err.message));
-            this.page.on('error',     err => console.error('📛 Erreur Puppeteer:', err.message));
+            this.page.on('pageerror', err => Helper.logV(`📛 Erreur JS page: ${err.message}`));
+            this.page.on('error',     err => Helper.logV(`📛 Erreur Puppeteer: ${err.message}`));
 
             if (await Helper.fileExists(config.hotspot.cookiePath)) {
-                console.log('cookies présents');
+                Helper.logV('cookies présents — chargement...');
                 const cookies = await Helper.readJson(config.hotspot.cookiePath);
                 await this.setCookies(cookies);
             }
@@ -112,8 +112,8 @@ export default class Agent {
             await this.handleCookiesAndPopups(false);
 
         } catch (error) {
-            console.error('Erreur initialisation:', error.message);
-            console.log("Tentative de continuer malgré l'erreur...");
+            Helper.log(`⚠️  Erreur initialisation: ${error.message}`);
+            Helper.logV("Tentative de continuer malgré l'erreur...");
         }
     }
 
@@ -174,7 +174,7 @@ export default class Agent {
 
             if (errorText !== null) {
                 const trimmed = errorText.trim();
-                console.log('text => ' + trimmed);
+                Helper.logV(`   réponse portail: "${trimmed}"`);
                 const isValid = trimmed !== "nom d'utilisateur ou mot de passe invalide";
                 return [isValid, trimmed];
             }
@@ -186,7 +186,7 @@ export default class Agent {
                 || error.message.includes('context was destroyed')
                 || error.message.includes('Protocol error (Runtime.callFunctionOn)');
 
-            if (!isContextError) console.error('Erreur loginWithTicket:', error.message);
+            if (!isContextError) Helper.logV(`⚠️  loginWithTicket: ${error.message}`);
 
             await Helper.sleepHuman(0.4, 0.7);
 
@@ -201,7 +201,7 @@ export default class Agent {
 
                 if (errorText !== null) {
                     const trimmed = errorText.trim();
-                    console.log('text => ' + trimmed);
+                    Helper.logV(`   réponse portail (recovery): "${trimmed}"`);
                     const isValid = trimmed !== "nom d'utilisateur ou mot de passe invalide";
                     return [isValid, trimmed];
                 }
@@ -234,11 +234,11 @@ export default class Agent {
         try {
             const currentUrl = this.page.url();
             if (!options.force && currentUrl === url) {
-                console.log('✅ Déjà sur cette URL:', url);
+                Helper.logV(`✅ Déjà sur: ${url}`);
                 return true;
             }
 
-            console.log('Navigation vers:', url);
+            Helper.logV(`Navigation vers: ${url}`);
 
             await Helper.retry(async () => {
                 await this.page.goto(url, {
@@ -247,12 +247,12 @@ export default class Agent {
                 });
             }, [], 1, options.maxRetries || 3);
 
-            console.log('✅ Navigation réussie');
+            Helper.logV('✅ Navigation réussie');
             await this.updateCookies();
             return true;
 
         } catch (error) {
-            console.error('❌ Erreur navigation vers', url, ':', error.message);
+            Helper.log(`❌ Erreur navigation vers ${url}: ${error.message}`);
             return false;
         }
     }

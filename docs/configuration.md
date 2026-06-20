@@ -5,6 +5,16 @@ Copier `.env.example` vers `.env` et ajuster les valeurs.
 
 ---
 
+## Logs
+
+### `VERBOSE`
+- Type : `true` | `false`
+- Défaut : `false`
+- `false` = affiche uniquement les actions importantes : code testé, résultat, pauses, statut WiFi, succès/échec
+- `true` = affiche tout : navigation Chrome, cookies, détails ping, messages du portail, retries
+
+---
+
 ## Navigateur
 
 ### `BROWSER_HEADLESS`
