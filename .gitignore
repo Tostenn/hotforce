@@ -2,6 +2,13 @@ node_modules/
 cookies/
 logs/
 
+# données runtime générées automatiquement
+code-valide.json
+log.*
+
+# config locale (ne jamais committer)
 .env
 .env.local
-log.*
+
+# paramètres locaux Claude Code
+.claude/
