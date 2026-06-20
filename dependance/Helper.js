@@ -1,74 +1,44 @@
 import fs from 'fs/promises';
 import axios from 'axios';
+import config from './config.js';
 
-
-
-/**
- * Classe utilitaire fournissant des méthodes d'aide pour les opérations courantes
- * telles que les délais, les tentatives de réexécution, la gestion des cookies
- * et le parsing de données.
- * 
- * @class Helper
- * @example
- * // Attendre 1 seconde
- * await Helper.sleep(1000);
- * 
- * // Réessayer une fonction avec délai
- * await Helper.retry(myFunction, [arg1, arg2], 2, 3);
- * 
- * // Sauvegarder des cookies
- * await Helper.saveCookies(cookieData);
-*/
 export default class Helper {
     static ascii_lowercase = 'abcdefghijklmnopqrstuvwxyz'
     static ascii_uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
     static digits = '0123456789'
 
     /**
-     * Préfixes utilisés pour les tickets générés
-     * Distribution réelle observée : 4j (~67%), 4d (~17%), 1s (~17%)
-     */
-    static ticketPrefixes = [
-        '4j', '4j', '4j', '4j',  // poids x4
-        '4d',
-        '1s',
-    ];
-
-    /**
      * @param {object} option
      * {
      *   code:   code existant à transformer
      *   revert: mélange les caractères du corps en conservant le préfixe
-     *           ex: 4jzfngw → 4jznfwg
-     *   upper:  tout en majuscules
-     *   lower:  tout en minuscules
-     *   minLen: longueur totale minimale (défaut: 5, préfixe inclus)
-     *   maxLen: longueur totale maximale (défaut: 7, préfixe inclus)
+     *   minLen: longueur totale minimale (préfixe inclus)
+     *   maxLen: longueur totale maximale (préfixe inclus)
+     *   charset: 'lower' | 'upper' | 'both'
      * }
-     * @returns {string} Le code généré ou modifié
+     * @returns {string}
      */
     static makeTicket(option = {}) {
-        const { code, revert, upper, lower, minLen, maxLen } = Object.assign(
-            { minLen: 4, maxLen: 7, lower: true },
-            option
-        );
+        const {
+            code,
+            revert,
+            minLen   = config.code.minLen,
+            maxLen   = config.code.maxLen,
+            charset  = config.code.charset,
+        } = option;
 
-        // Détermine le charset à utiliser selon les options
-        let charset = '';
-        if (upper && !lower) {
-            charset = Helper.ascii_uppercase + Helper.digits;
-        } else if (lower && !upper) {
-            charset = Helper.ascii_lowercase + Helper.digits;
-        } else {
-            charset = Helper.ascii_lowercase + Helper.ascii_uppercase + Helper.digits;
-        }
+        const lower = charset !== 'upper';
+        const upper = charset !== 'lower';
 
-        const generateRandom = (length) => {
-            let result = '';
-            for (let i = 0; i < length; i++) {
-                result += charset.charAt(Math.floor(Math.random() * charset.length));
-            }
-            return result;
+        let chars = '';
+        if (upper && !lower)      chars = Helper.ascii_uppercase + Helper.digits;
+        else if (lower && !upper) chars = Helper.ascii_lowercase + Helper.digits;
+        else                      chars = Helper.ascii_lowercase + Helper.ascii_uppercase + Helper.digits;
+
+        const rand = (len) => {
+            let r = '';
+            for (let i = 0; i < len; i++) r += chars[Math.floor(Math.random() * chars.length)];
+            return r;
         };
 
         const applyCase = (str) => {
@@ -77,38 +47,26 @@ export default class Helper {
             return str;
         };
 
-        // Mélange (Fisher-Yates) les caractères du corps en préservant le préfixe
         const shuffleBody = (str) => {
-            const prefix = Helper.ticketPrefixes
+            const prefix = config.code.prefixes
                 .slice()
                 .sort((a, b) => b.length - a.length)
-                .find(p => str.startsWith(p)) || '';
-            const head = str.slice(0, prefix.length);
+                .find(p => str.startsWith(p)) ?? '';
             const body = str.slice(prefix.length).split('');
             for (let i = body.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [body[i], body[j]] = [body[j], body[i]];
             }
-            return head + body.join('');
+            return prefix + body.join('');
         };
 
-        let result;
+        if (code) return revert ? shuffleBody(code) : applyCase(code);
 
-        if (!code) {
-            // Choisir un préfixe aléatoire
-            const prefix = Helper.ticketPrefixes[Math.floor(Math.random() * Helper.ticketPrefixes.length)];
-
-            const safeMin = Math.max(minLen, prefix.length + 1);
-            const safeMax = Math.max(maxLen, safeMin);
-            const totalLen = Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
-
-            const bodyLen = Math.max(0, totalLen - prefix.length);
-            result = prefix + generateRandom(bodyLen);
-        } else {
-            result = revert ? shuffleBody(code) : applyCase(code);
-        }
-
-        return result;
+        const prefix   = config.code.prefixes[Math.floor(Math.random() * config.code.prefixes.length)];
+        const safeMin  = Math.max(minLen, prefix.length + 1);
+        const safeMax  = Math.max(maxLen, safeMin);
+        const totalLen = Math.floor(Math.random() * (safeMax - safeMin + 1)) + safeMin;
+        return prefix + rand(totalLen - prefix.length);
     }
 
     static async sleep(ms) {
@@ -121,13 +79,10 @@ export default class Helper {
             try {
                 return await fn(...args);
             } catch (error) {
-                if (retries >= maxRetries) {
-                    throw error;
-                }
+                if (retries >= maxRetries) throw error;
                 await this.sleepHuman(timeout);
                 retries++;
                 console.log('ressaie ', retries);
-                
             }
         }
     }
@@ -140,51 +95,28 @@ export default class Helper {
         }
     }
 
-    /**
-     * Attente "humaine" (variation aléatoire)
-     * @param {number} min Millisecondes min
-     * @param {number} [max] Millisecondes max
-     */
     static async sleepHuman(min = 1, max) {
-        min = min * 1000
-        max = max ? max * 1000 : max
-        const delay = max && max > min
-            ? Math.floor(Math.random() * (max - min + 1)) + min
-            : min + Math.floor(Math.random() * 400);
+        const minMs = min * 1000;
+        const maxMs = max ? max * 1000 : null;
+        const delay = maxMs && maxMs > minMs
+            ? Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs
+            : minMs + Math.floor(Math.random() * 400);
         return new Promise(resolve => setTimeout(resolve, delay));
     }
 
-    /**
-     * Génère un délai réaliste pour l'écriture clavier
-     */
     static humanDelay() {
         return 60 + Math.floor(Math.random() * 40);
     }
 
-    /**
-     * save file json
-     * @param {*} datas 
-     * @param {string} path 
-     */
     static async saveJson(datas, path) {
         await fs.writeFile(path, JSON.stringify(datas, null, 4));
     }
 
-    /**
-     * Lit un fichier JSON et retourne son contenu formaté
-     * @param {string} path Chemin du fichier JSON à lire
-     * @returns {Promise<any>} Le contenu JSON parsé
-     */
     static async readJson(path) {
         const data = await fs.readFile(path, 'utf-8');
         return JSON.parse(data);
     }
 
-    /**
-     * Vérifie si un fichier existe
-     * @param {string} path Chemin du fichier à vérifier
-     * @returns {Promise<boolean>} true si le fichier existe, false sinon
-     */
     static async fileExists(path) {
         try {
             await fs.access(path);
@@ -195,60 +127,19 @@ export default class Helper {
     }
 
     /**
-     * parse l'amount
-     * @param {number} amount 
-     */
-    static parseAmount(amount) {
-        amount = amount.slice(0, amount.length - 2)
-
-        let amountParse = [];
-        for (const el of amount) {
-            const num = parseInt(el);
-            if (typeof num === 'number' && !isNaN(num)) {
-                amountParse.push(num);
-            }
-        }
-
-        return parseInt(amountParse.join(''));
-    }
-
-    /**
-     * 
-     * @param {{eq1: string, eq2: string, time: string, score: string}} data 
-     */
-    static parseDataMatch(data) {
-        if (data.score) {
-            const score = data.score.split('-').map(el => parseInt(el.trim()));
-            data.score = score
-        }
-        if (data.time) {
-            const time = data.time.split("'")[0].trim()
-            data.time = parseInt(time)
-        }
-        return data
-    }
-
-    /**
-     * Vérifie la connexion en tentant un GET HTTP sur des URLs fiables.
-     * Essaie jusqu'à `retries` fois avec un délai entre chaque essai.
-     * @param {number} retries Nombre de tentatives (défaut: 3)
+     * Vérifie la connexion via requêtes HTTP sur les URLs configurées dans PING_URLS.
+     * Tente jusqu'à PING_RETRIES fois avec un délai de 3s entre chaque cycle.
      * @returns {Promise<boolean>}
      */
-    static async isOnline(retries = 3) {
-        const PING_URLS = [
-            'http://www.google.com',
-            'http://1.1.1.1',
-            'http://www.cloudflare.com',
-        ];
+    static async isOnline() {
+        const { urls, retries, timeoutMs } = config.ping;
 
         for (let tentative = 1; tentative <= retries; tentative++) {
-            for (const url of PING_URLS) {
+            for (const url of urls) {
                 try {
-                    await axios.get(url, { timeout: 5000 });
+                    await axios.get(url, { timeout: timeoutMs });
                     return true;
-                } catch (_) {
-                    // URL inaccessible, essayer la suivante
-                }
+                } catch (_) { /* essayer la suivante */ }
             }
             if (tentative < retries) {
                 console.log(`🔴 Hors ligne (essai ${tentative}/${retries}) — attente 3s...`);
@@ -259,37 +150,53 @@ export default class Helper {
     }
 
     /**
-     * Attend que la connexion internet soit rétablie.
-     * Si le WiFi est tombé (système de défense côté hotspot), attend plus longtemps.
-     * @param {number} maxAttentes Nombre max d'attentes avant abandon (défaut: 20)
+     * Attend que la connexion soit rétablie.
+     * Le délai entre chaque vérification monte progressivement (30s → 4min).
      * @returns {Promise<boolean>}
      */
-    static async attendreConnexion(maxAttentes = 20) {
+    static async attendreConnexion() {
+        const { wifiDownMaxWaits, reconnectExtraMin, reconnectExtraMax } = config.delays;
         let compteur = 0;
-        while (compteur < maxAttentes) {
-            const ok = await Helper.isOnline(3);
+
+        while (compteur < wifiDownMaxWaits) {
+            const ok = await Helper.isOnline();
             if (ok) {
                 if (compteur > 0) console.log('🟢 Connexion rétablie !');
                 return true;
             }
             compteur++;
-            // Délai croissant : commence à 30s, monte jusqu'à 4min
             const delaiSec = Math.min(30 + compteur * 15, 240);
-            console.log(`⏳ WiFi indisponible (attente ${compteur}/${maxAttentes}) — pause ${delaiSec}s...`);
+            console.log(`⏳ WiFi indisponible (${compteur}/${wifiDownMaxWaits}) — pause ${delaiSec}s...`);
             await Helper.sleep(delaiSec);
         }
+
         console.log('❌ Connexion toujours absente après toutes les tentatives.');
         return false;
     }
 
-    /**
-     * @description Vérifie si l'agent est en mode headless
-     * @returns {boolean}
-     */
-    static getHeadlessValue() {
-        const headless = process.env.BROWSER_HEASLESS
-        return headless.toLocaleLowerCase() == 'true'
+    // Retourne le délai supplémentaire aléatoire après reconnexion
+    static randomReconnectExtra() {
+        const { reconnectExtraMin, reconnectExtraMax } = config.delays;
+        return reconnectExtraMin + Math.floor(Math.random() * (reconnectExtraMax - reconnectExtraMin + 1));
     }
 
+    static parseAmount(amount) {
+        amount = amount.slice(0, amount.length - 2);
+        let amountParse = [];
+        for (const el of amount) {
+            const num = parseInt(el);
+            if (!isNaN(num)) amountParse.push(num);
+        }
+        return parseInt(amountParse.join(''));
+    }
 
+    static parseDataMatch(data) {
+        if (data.score) {
+            data.score = data.score.split('-').map(el => parseInt(el.trim()));
+        }
+        if (data.time) {
+            data.time = parseInt(data.time.split("'")[0].trim());
+        }
+        return data;
+    }
 }
