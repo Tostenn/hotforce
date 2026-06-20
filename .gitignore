@@ -1,0 +1,7 @@
+node_modules/
+cookies/
+logs/
+
+.env
+.env.local
+log.*
