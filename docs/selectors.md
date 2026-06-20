@@ -22,11 +22,11 @@ Cliquer sur le champ de saisie du code. Dans les DevTools, repérer l'élément 
 ```html
 <!-- Exemple 1 : champ avec id -->
 <input id="username" type="text" />
-→ SELECTOR_INPUT=input#username
+→ SELECTOR_INPUT='input#username'
 
 <!-- Exemple 2 : champ avec name -->
 <input name="voucher" type="text" />
-→ SELECTOR_INPUT=input[name="voucher"]
+→ SELECTOR_INPUT='input[name="voucher"]'
 
 <!-- Exemple 3 : classe spécifique -->
 <input class="voucher-input" type="text" />
@@ -38,11 +38,11 @@ Cliquer sur le champ de saisie du code. Dans les DevTools, repérer l'élément 
 ```html
 <!-- Exemple 1 -->
 <button type="submit" class="btn btn-primary">Se connecter</button>
-→ SELECTOR_BUTTON=button[type="submit"]
+→ SELECTOR_BUTTON='button[type="submit"]'
 
 <!-- Exemple 2 -->
 <input type="submit" value="Login" />
-→ SELECTOR_BUTTON=input[type="submit"]
+→ SELECTOR_BUTTON='input[type="submit"]'
 ```
 
 ### Zone d'erreur (`SELECTOR_ERROR`)
@@ -56,11 +56,11 @@ La zone qui affiche "code invalide", "mot de passe incorrect", etc. :
 
 <!-- Exemple 2 -->
 <span id="login-error">...</span>
-→ SELECTOR_ERROR=#login-error
+→ SELECTOR_ERROR='#login-error'
 
 <!-- Exemple 3 (hotspot.ci) -->
 <form name="login"><div class="error">...</div></form>
-→ SELECTOR_ERROR=form[name="login"] .error
+→ SELECTOR_ERROR='form[name="login"] .error'
 ```
 
 ### Texte de bienvenu (`SELECTOR_SUCCESS_TEXT`)
@@ -104,10 +104,10 @@ http://192.168.1.1/status
 ```env
 HOTSPOT_URL=http://192.168.1.1/guest/s/default/
 HOTSPOT_SUCCESS_URLS=http://192.168.1.1/guest/s/default/status
-SELECTOR_INPUT=input#username
-SELECTOR_BUTTON=button[type="submit"]
-SELECTOR_ERROR=.alert-error
-SELECTOR_SUCCESS_TEXT=authorized|connecté
+SELECTOR_INPUT="input#username"
+SELECTOR_BUTTON='button[type="submit"]'
+SELECTOR_ERROR=".alert-error"
+SELECTOR_SUCCESS_TEXT="authorized|connecté"
 ```
 
 ### MikroTik HotSpot
@@ -115,10 +115,10 @@ SELECTOR_SUCCESS_TEXT=authorized|connecté
 ```env
 HOTSPOT_URL=http://192.168.88.1/login
 HOTSPOT_SUCCESS_URLS=http://192.168.88.1/status
-SELECTOR_INPUT=input[name="username"]
-SELECTOR_BUTTON=input[type="submit"]
+SELECTOR_INPUT='input[name="username"]'
+SELECTOR_BUTTON='input[type="submit"]'
 SELECTOR_ERROR=td.err
-SELECTOR_SUCCESS_TEXT=logged in|connecté
+SELECTOR_SUCCESS_TEXT="logged in|connecté"
 ```
 
 ### hotspot.ci (configuration par défaut)
@@ -126,10 +126,10 @@ SELECTOR_SUCCESS_TEXT=logged in|connecté
 ```env
 HOTSPOT_URL=http://hotspot.ci/login
 HOTSPOT_SUCCESS_URLS=http://hotspot.ci/status,http://hotspot.ci/success.html
-SELECTOR_INPUT=input#username
-SELECTOR_BUTTON=form button.btn
-SELECTOR_ERROR=form[name="login"] .error
-SELECTOR_SUCCESS_TEXT=cliquer ici|click here
+SELECTOR_INPUT="input#username"
+SELECTOR_BUTTON="form button.btn"
+SELECTOR_ERROR='form[name="login"] .error'
+SELECTOR_SUCCESS_TEXT="cliquer ici|click here"
 ```
 
 ---
