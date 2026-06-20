@@ -1,4 +1,4 @@
-# hotforce — Testeur de vouchers hotspot
+# HotForce — Testeur de vouchers hotspot
 
 Automatise les tentatives de connexion sur un portail captif WiFi (type UniFi/hotspot.ci) en générant et testant des codes vouchers par brute-force.
 
