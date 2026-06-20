@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import isOnlineImport from 'is-online'
+import axios from 'axios';
 
 
 
@@ -26,12 +26,12 @@ export default class Helper {
 
     /**
      * Préfixes utilisés pour les tickets générés
+     * Distribution réelle observée : 4j (~67%), 4d (~17%), 1s (~17%)
      */
     static ticketPrefixes = [
-        '4j',
-        // 'sem',
-        // '1s',
+        '4j', '4j', '4j', '4j',  // poids x4
         '4d',
+        '1s',
     ];
 
     /**
@@ -229,28 +229,56 @@ export default class Helper {
     }
 
     /**
-     * teste la connection
+     * Vérifie la connexion en tentant un GET HTTP sur des URLs fiables.
+     * Essaie jusqu'à `retries` fois avec un délai entre chaque essai.
+     * @param {number} retries Nombre de tentatives (défaut: 3)
      * @returns {Promise<boolean>}
      */
-    static async isOnline() {
-        const check = await isOnlineImport();
-        if (check) return check;
-        
-        let essai = 6;
+    static async isOnline(retries = 3) {
+        const PING_URLS = [
+            'http://www.google.com',
+            'http://1.1.1.1',
+            'http://www.cloudflare.com',
+        ];
 
-        while (essai > 0) {
-            console.log("🔴 Hors ligne | Aucune connexion internet, en attente de la connexion...");
-            await Helper.sleep(5);
-            const check = await isOnlineImport();
-            if (check) {
-                console.log("🟢 Connexion internet rétablie !");
-                return check;
+        for (let tentative = 1; tentative <= retries; tentative++) {
+            for (const url of PING_URLS) {
+                try {
+                    await axios.get(url, { timeout: 5000 });
+                    return true;
+                } catch (_) {
+                    // URL inaccessible, essayer la suivante
+                }
             }
-
-            essai--;
+            if (tentative < retries) {
+                console.log(`🔴 Hors ligne (essai ${tentative}/${retries}) — attente 3s...`);
+                await Helper.sleep(3);
+            }
         }
+        return false;
+    }
 
-        console.log("Aucune connexion internet, veuillez vérifier votre connexion.");
+    /**
+     * Attend que la connexion internet soit rétablie.
+     * Si le WiFi est tombé (système de défense côté hotspot), attend plus longtemps.
+     * @param {number} maxAttentes Nombre max d'attentes avant abandon (défaut: 20)
+     * @returns {Promise<boolean>}
+     */
+    static async attendreConnexion(maxAttentes = 20) {
+        let compteur = 0;
+        while (compteur < maxAttentes) {
+            const ok = await Helper.isOnline(3);
+            if (ok) {
+                if (compteur > 0) console.log('🟢 Connexion rétablie !');
+                return true;
+            }
+            compteur++;
+            // Délai croissant : commence à 30s, monte jusqu'à 4min
+            const delaiSec = Math.min(30 + compteur * 15, 240);
+            console.log(`⏳ WiFi indisponible (attente ${compteur}/${maxAttentes}) — pause ${delaiSec}s...`);
+            await Helper.sleep(delaiSec);
+        }
+        console.log('❌ Connexion toujours absente après toutes les tentatives.');
         return false;
     }
 

