@@ -48,18 +48,15 @@ agent.initialize()
 ║     (préfixe + corps random) ║
 ║         │                    ║
 ║         ▼                    ║
-║  3. testTicket(ticket)       ║
-║     ├─ essai normal          ║
-║     └─ essai revert (shuffle)║
-║         │                    ║
-║         ▼                    ║
-║  4. loginWithTicket()        ║
-║     ├─ Saisit le code        ║
-║     ├─ Clique Submit         ║
-║     └─ Lit URL / message     ║
-║         │                    ║
-║         ├── SUCCÈS ─────────▶ saveCode() → ARRÊT
-║         │                    ║
+║  3. testTicket(ticket)            ║
+║     Pour chaque variante (normal + revert) :
+║     │                              ║
+║     │  Boucle retry 1..TICKET_RETRIES :
+║     │   ├─ loginWithTicket()       ║
+║     │   ├─ SUCCÈS ───────────────▶ saveCode() → ARRÊT
+║     │   ├─ DÉJÀ CONNECTÉ ────────▶ saveCode() → variante suivante
+║     │   └─ INVALIDE → pause RETRY_DELAY_SEC → retry
+║         │                          ║
 ║         ▼                    ║
 ║  5. pauseEntreEssais()       ║
 ║     ├─ isOnline() ?          ║
@@ -122,9 +119,14 @@ Exemple de résultat :
   → Corps généré (5 chars) : "zfngw"
   → Code final : "4jzfngw"
 
-Pour chaque code, deux tentatives :
-  1. Le code tel quel          → 4jzfngw
-  2. Corps mélangé (revert)    → 4jgnwfz  (même chars, ordre différent)
+Pour chaque code, deux variantes × TICKET_RETRIES tentatives :
+  1. Le code tel quel          → 4jzfngw  (testé jusqu'à TICKET_RETRIES fois)
+  2. Corps mélangé (revert)    → 4jgnwfz  (testé jusqu'à TICKET_RETRIES fois)
+
+Résultats possibles par tentative :
+  - SUCCÈS          → code sauvegardé, programme arrêté
+  - DÉJÀ CONNECTÉ   → code sauvegardé (valide mais utilisé ailleurs), variante suivante
+  - INVALIDE        → pause RETRY_DELAY_SEC secondes, puis retry jusqu'à épuisement
 ```
 
 ## Gestion des coupures WiFi

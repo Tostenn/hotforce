@@ -143,6 +143,11 @@ Voir [selectors.md](selectors.md) pour savoir comment les trouver.
 - Défaut : `30`
 - Pause supplémentaire maximale après rétablissement du WiFi.
 
+### `RETRY_DELAY_SEC`
+- Type : entier (secondes)
+- Défaut : `3`
+- Pause entre deux tentatives du **même code** (voir `TICKET_RETRIES`).
+
 ---
 
 ## Boucle principale
@@ -151,3 +156,10 @@ Voir [selectors.md](selectors.md) pour savoir comment les trouver.
 - Type : entier
 - Défaut : `1000`
 - Nombre maximum de codes testés avant arrêt automatique.
+
+### `TICKET_RETRIES`
+- Type : entier
+- Défaut : `2`
+- Nombre de fois qu'un même code est testé avant d'être rejeté.  
+  Certains portails répondent "invalide" au 1er essai mais "déjà connecté sur un autre téléphone" au 2e — ce qui indique que le code est valide. Dans ce cas le code est sauvegardé et le test continue.  
+  Entre chaque retry, une pause de `RETRY_DELAY_SEC` secondes est respectée.
