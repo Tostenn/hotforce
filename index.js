@@ -56,24 +56,38 @@ async function testTicket(ticket) {
         if (await agent.isConnected()) return true;
 
         Helper.log(`→ code: ${t}`);
-        const [res, message] = await agent.loginWithTicket(t);
 
-        const url = agent.page?.url() || '';
-        const connectedByUrl = config.hotspot.successUrls.some(u => url.startsWith(u));
+        const maxRetries = config.loop.ticketRetries;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (attempt > 1) {
+                Helper.log(`   ↺ Retry ${attempt}/${maxRetries} (pause ${config.delays.retrySec}s)...`);
+                await Helper.sleep(config.delays.retrySec);
+            }
 
-        if (connectedByUrl) {
-            await saveCode(t, `Connexion réussie (${url})`);
-            return true;
+            const [res, message] = await agent.loginWithTicket(t);
+
+            const url = agent.page?.url() || '';
+            const connectedByUrl = config.hotspot.successUrls.some(u => url.startsWith(u));
+
+            if (connectedByUrl) {
+                await saveCode(t, `Connexion réussie (${url})`);
+                return true;
+            }
+
+            if (res && !isDejaConnecte(message)) {
+                await saveCode(t, message);
+                return true;
+            }
+
+            if (isDejaConnecte(message)) {
+                await saveCode(t, message);
+                break;
+            }
+
+            Helper.logV(`   ✗ invalide (essai ${attempt}/${maxRetries})`);
         }
 
-        if (res || isDejaConnecte(message)) {
-            await saveCode(t, message);
-            if (res && !isDejaConnecte(message)) return true;
-        } else {
-            Helper.logV(`   ✗ invalide`);
-        }
-
-        await Helper.sleepHuman(2);
+        await Helper.sleepHuman(3, 5);
     }
 }
 

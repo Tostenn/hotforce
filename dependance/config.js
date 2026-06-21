@@ -62,9 +62,11 @@ export default {
         wifiDownMaxWaits:    parseIntEnv(e.WIFI_DOWN_MAX_WAITS,         20),
         reconnectExtraMin:   parseIntEnv(e.WIFI_RECONNECT_EXTRA_MIN_SEC, 10),
         reconnectExtraMax:   parseIntEnv(e.WIFI_RECONNECT_EXTRA_MAX_SEC, 30),
+        retrySec:            parseIntEnv(e.RETRY_DELAY_SEC,              3),
     },
 
     loop: {
         maxIterations: parseIntEnv(e.MAX_ITERATIONS, 1000),
+        ticketRetries: parseIntEnv(e.TICKET_RETRIES, 2),
     },
 };
